@@ -3,7 +3,7 @@
 exports.handler = function(context, event, callback) {
 	const AccessToken = require('twilio').jwt.AccessToken;
     const VideoGrant = AccessToken.VideoGrant;
-    
+	
     // Used when generating any kind of tokens
     const twilioAccountSid = 'XXX';
     const twilioApiKey = 'XXX';
