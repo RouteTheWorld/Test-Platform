@@ -1,0 +1,16 @@
+1
+00:00:00,000 --> 00:00:05,000
+- Good Answer
+
+2
+00:00:09,473 --> 00:00:14,473
+- 		you are blatehring on and on
+
+3
+00:00:11,326 --> 00:00:16,326
+- You look distracted
+
+4
+00:00:19,602 --> 00:00:24,602
+- physics is not your strong point
+
