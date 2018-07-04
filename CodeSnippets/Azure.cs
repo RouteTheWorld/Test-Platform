@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class RootObject
 {
@@ -13,7 +14,7 @@ public class RootObject
 
 public static void Run(string myQueueItem, TraceWriter log)
 {
-    // TODO: funcionise
+   // TODO: funcionise
     log.Info($"C# Queue trigger function processed: {myQueueItem}");
 
     // Get a list of urls, nastiness due to utf8 faffing
@@ -57,26 +58,64 @@ public static void Run(string myQueueItem, TraceWriter log)
         }
         log.Info(filename);
 
-        var filePath = Path.Combine("D:\\local\\Temp\\Video", filename);
+        var filePath = Path.Combine(videoPath, filename);
 
         log.Info(filePath);
 
         webClient.DownloadFile(url, filePath);
     }
 
-    // D:\\local\\Temp\\Video now has all the files    
+    // D:\\local\\Temp\\Video now has all the files
 
-    // TODO: hook up python script
 
-    // System.Diagnostics.Process ffmpegProcess = new System.Diagnostics.Process();
-    // ffmpegProcess.StartInfo.FileName = @"D:\home\site\wwwroot\QueueTriggerCSharp1\ffmpeg.exe";
-    // ffmpegProcess.StartInfo.Arguments = "";
-    // ffmpegProcess.StartInfo.UseShellExecute = false;
-    // ffmpegProcess.StartInfo.RedirectStandardOutput = true;
-    // ffmpegProcess.StartInfo.RedirectStandardError = true;
-    // ffmpegProcess.Start();
-    // string output = ffmpegProcess.StandardOutput.ReadToEnd();
-    // string error = ffmpegProcess.StandardError.ReadToEnd();
-    // log.Info(output);
-    // log.Info(error);
+    // Get all the start times out using ffprobe
+    DirectoryInfo d = new DirectoryInfo(videoPath);
+
+    Dictionary<string, float> fileStartTimes = new Dictionary<string, float>();
+
+    float minStartTime = float.MaxValue;
+
+    foreach (var file in d.GetFiles("*.*"))
+    {
+        var fileName = file.Name;
+        log.Info(fileName);
+        var filePath = Path.Combine(videoPath, fileName);
+
+        System.Diagnostics.Process ffprobeProcess = new System.Diagnostics.Process();
+        ffprobeProcess.StartInfo.FileName = @"D:\home\site\wwwroot\QueueTriggerCSharp1\ffprobe2.exe";
+        var arguments =  "-show_entries format=start_time -loglevel quiet " + filePath;
+        log.Info(arguments);
+        ffprobeProcess.StartInfo.Arguments = arguments;
+        ffprobeProcess.StartInfo.UseShellExecute = false;
+        ffprobeProcess.StartInfo.RedirectStandardOutput = true;
+        ffprobeProcess.StartInfo.RedirectStandardError = true;
+        ffprobeProcess.Start();
+        string output = ffprobeProcess.StandardOutput.ReadToEnd();
+        string error = ffprobeProcess.StandardError.ReadToEnd();
+        log.Info(output);
+        log.Info(error);
+
+        Regex regex = new Regex(@"[0-9]+\.[0-9]+");
+        Match match = regex.Match(output);
+        log.Info("startTime: " + match.Value);
+
+        float startTime = float.Parse(match.Value);
+        minStartTime = Math.Min(startTime, minStartTime);
+        fileStartTimes.Add(filePath, startTime);
+    }
+   
+    string ffprobeAruguments = "ffmpeg";
+
+    foreach(KeyValuePair<string, float> fileInfo in fileStartTimes)
+    {
+        if(fileInfo.Key.Contains(".mkv"))
+        {
+            ffprobeAruguments = ffprobeAruguments + "-i" + fileInfo.Key + " ";
+        }
+        else
+        {
+            ffprobeAruguments = ffprobeAruguments + "-i" + fileInfo.Key + "-acodec libopus ";
+        }
+    }
+    ffprobeAruguments = ffprobeAruguments + "-y -filter-complex \"";
 }
